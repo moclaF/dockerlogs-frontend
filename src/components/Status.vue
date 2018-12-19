@@ -14,7 +14,7 @@
                 :data="tableData"
                 border
                 style="width: 100%"
-                height="ht"
+                :height="ht"
                 :default-sort="{prop: 'State', order: 'descending'}">
             <el-table-column
                     prop="Id"
@@ -52,26 +52,24 @@
                 </template>
             </el-table-column>
         </el-table>
-        <div v-if="showlog">
-            <div  >
-                <p style="float: left;margin: 0">logs of {{logname}}</p>
-                <el-button type="danger" circle size="mini" icon="el-icon-close" style="float: left" @click="clicklog"></el-button>
+        <div v-if="showlog" style="height: 50%;background-color: #a9a9a9">
+            <div>
+                <p style="float: left;margin: 0;">logs of {{logname}}</p>
+                <el-button type="danger" circle size="mini" icon="el-icon-close" style="float: right;"
+                           @click="clicklog"></el-button>
             </div>
-            <el-input
-                    resize="none"
-                    type="textarea"
-                    rows=10
-                    :readonly="ro"
-            ></el-input>
+            <br>
+            <div id="output"
+                 style="text-align: left;background-color: black;color: white;width: 99%;height: 200px; overflow-y:auto">
+                <div id = "logput"></div>
+            </div>
         </div>
     </div>
 </template>
 
-<script>
-    import ElButton from "element-ui/packages/button/src/button";
+<script type="text/javascript">
 
     export default {
-        components: {ElButton},
         data() {
             return {
                 tableData: [],
@@ -87,17 +85,18 @@
                     label: '异步集群'
                 }],
                 value4: 'api',
+                logData: '',
                 ht: '600',
                 la: 'nonedisplay',
                 showlog: false,
                 ro: true,
-                logname: ''
+                logname: '',
             }
         },
         created() {
             this.initWebSocket();
             console.log(window.innerHeight);
-            this.ht=window.innerHeight-153
+            this.ht = window.innerHeight - 50
         },
         destroyed: function () {
             //页面销毁时关闭长连接
@@ -107,10 +106,11 @@
             showlogs(row) {
                 this.ht = 400;
                 this.showlog = true;
-                this.logname = row.Name
-
+                this.logname = row.Name;
+                // this.removeLogDiv();
+                this.websocketsend(row.Id)
             },
-            clicklog(){
+            clicklog() {
                 this.showlog = false;
                 this.ht = 600;
             },
@@ -128,15 +128,26 @@
 
             },
             websocketonopen() {
-                console.log("WebSocket连接成功");
+                console.log("success");
             },
             websocketonerror(e) { //错误
-                console.log("WebSocket连接发生错误");
+                console.log("error");
             },
             websocketonmessage(e) { //数据接收
                 const redata = JSON.parse(e.data);
-                this.tableData = redata;
+                const out = document.getElementById("output");
+                if (typeof redata === "object") {
+                    this.tableData = redata;
+                } else if (typeof redata === "string") {
+                    let d = document.createElement("div");
+                    d.className = "logtext";
+                    d.innerHTML = this.getNowdate() + "   " + redata;
+                    console.log(out);
+                    out.prepend(d);
+                }
                 // console.log(redata);
+
+
             },
             websocketclose(e) { //关闭
                 console.log("connection closed (" + e.code + ")");
@@ -144,7 +155,33 @@
             websocketsend(agentData) {//数据发送
                 this.websock.send(agentData);
             },
+            getNowdate() {
+                let date = new Date();
+                let seperator1 = "-";
+                let seperator2 = ":";
+                let year = date.getFullYear();
+                let month = date.getMonth() + 1;
+                let strDate = date.getDate();
+                let hour = date.getHours(); // 时
+                let minutes = date.getMinutes(); // 分
+                let seconds = date.getSeconds() //秒
+                if (month >= 1 && month <= 9) {
+                    month = "0" + month;
+                }
+                if (strDate >= 0 && strDate <= 9) {
+                    strDate = "0" + strDate;
+                }
+                let currentdate = year + seperator1 + month + seperator1 + strDate + " " + hour + seperator2 + minutes + seperator2 + seconds;
+                return currentdate;
+            },
+            removeLogDiv() {
+                let elem = document.getElementById("output");
+                while (elem.hasChildNodes()) //当elem下还存在子节点时 循环继续
+                {
+                    elem.removeChild(elem.firstChild);
 
+                }
+            }
         }
 
     }
@@ -162,5 +199,10 @@
 
     .nonedisplay {
         display: none;
+    }
+
+    .logtext {
+        float: left;
+        text-align: left;
     }
 </style>
