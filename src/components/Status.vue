@@ -56,7 +56,7 @@
             <div>
                 <p style="float: left;margin: 0;">logs of {{logname}}</p>
                 <el-button type="danger" circle size="mini" icon="el-icon-close" style="float: right;"
-                           @click="clicklog"></el-button>
+                           @click="stoplog"></el-button>
             </div>
             <br>
             <div id="output"
@@ -104,17 +104,20 @@
         },
         methods: {
             showlogs(row) {
+                this.removeLogDiv();
                 this.ht = 400;
                 this.showlog = true;
                 this.logname = row.Name;
-                // this.removeLogDiv();
                 this.websocketsend(row.Id)
             },
-            clicklog() {
+            stoplog() {
                 this.showlog = false;
                 this.ht = 600;
+                this.endlogpush();
+                this.removeLogDiv()
             },
             changecluster(cluster) {
+                this.stoplog();
                 this.websocketsend(cluster);
             },
             initWebSocket() {
@@ -142,7 +145,6 @@
                     let d = document.createElement("div");
                     d.className = "logtext";
                     d.innerHTML = this.getNowdate() + "   " + redata;
-                    console.log(out);
                     out.prepend(d);
                 }
                 // console.log(redata);
@@ -154,6 +156,9 @@
             },
             websocketsend(agentData) {//数据发送
                 this.websock.send(agentData);
+            },
+            endlogpush() {
+                this.websocketsend("stoplog")
             },
             getNowdate() {
                 let date = new Date();
@@ -176,7 +181,8 @@
             },
             removeLogDiv() {
                 let elem = document.getElementById("output");
-                while (elem.hasChildNodes()) //当elem下还存在子节点时 循环继续
+                console.log(elem);
+                while (elem.hasChildNodes())
                 {
                     elem.removeChild(elem.firstChild);
 
